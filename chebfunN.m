@@ -62,11 +62,6 @@ while errmax > tol1
 
    %% Phase 2
 
-%     for i=1:N
-%         if size(J{i},i) == 0 
-%                 cfN.U{i} = chebfun(zeros([n(i),1]), pref);
-%                 cfN.C = 0;
-%         else
         m = n;
         resolved = zeros(N,1); 
         Uf = cell(N,1);
@@ -76,27 +71,27 @@ while errmax > tol1
             resolved(l) = happinessCheck(ct2, [], ct2.coeffs, [], pref);
             if ~resolved(l)
                 m(l) = 2*m(l)-1;
+                J{l} = 2*J{l}-1;
+                C{l} = cheb(J{l}, m(l));
             end
         end
             
-        % Add function evaluations and check again
+       
         while any(~resolved)
-            for p=1:N
-                if resolved(p)
-                    J{p} = 2*J{p}-1;
-                end            
-            end
-                
             for q=1:N
                 if ~resolved(q)
                     M = constructMatrix(C,q,m,f);
-                    [~, ~, ~, ~,I2{q}] = ACA(M, tol, m(q));
-                    Uf{q} = M(:,I2{q});
+                    [Uf{q}, ~, ~, I,I2{q}] = ACA(M, tol, m(q));
+                    r(q) = size(I,2);
+                    J{q} = I;
+                    C{q} = cheb(J{q}, m(q));
                 end
                 ct2 = createCT2(Uf{q});
                 resolved(q) = happinessCheck(ct2, [], ct2.coeffs, [], pref);
                 if ~resolved(q)
                     m(q) = 2*m(q)-1;
+                    J{q} = 2*J{q}-1;
+                    C{q} = cheb(J{q}, m(q));
                 end
             end
         end
@@ -123,12 +118,10 @@ while errmax > tol1
          % Compute the core
          C = cell(N,1);
          for k=1:N
-             C{k} = cheb(K{k}, n(k));       
+             C{k} = cheb(K{k}, m(k));       
          end
          cfN.C = constructTensor(f,C);
  
-%    end
-%   end
 %% Calcolo dell'errore di approssimazione
     coeffs = cell(N,1);
     for i= 1:N 
@@ -159,7 +152,7 @@ while errmax > tol1
     if any(errmax > tol1)
         for j=1:N
             n(j) = floor(sqrt(2)^(floor(2*log2(n(j))) + 1)) + 1;
-            r(j) = 2*r(j);
+            r(j) = max(6,2*r(j));
         end
     elseif any(errmax < tol1)
         break
